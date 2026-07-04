@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -16,26 +20,71 @@ jobs:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node 🧰
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
 
-      - name: Install and build 🔧
+      - name: Install dependencies 📦
+        run: npm ci
+
+      - name: Validate secret 🔐
         env:
           VITE_PIXABAY_API_KEY: ${{ secrets.VITE_PIXABAY_API_KEY }}
         run: |
-          npm ci
-
           if [ -z "$VITE_PIXABAY_API_KEY" ]; then
-            echo "❌ VITE_PIXABAY_API_KEY is empty"
+            echo "❌ VITE_PIXABAY_API_KEY is empty or not available"
+            echo "Check: Settings → Secrets and variables → Actions → Repository secrets"
             exit 1
-          else
-            echo "✅ VITE_PIXABAY_API_KEY is set"
           fi
 
-          npm run build
+          echo "✅ VITE_PIXABAY_API_KEY is available"
+
+      - name: Build 🔧
+        env:
+          VITE_PIXABAY_API_KEY: ${{ secrets.VITE_PIXABAY_API_KEY }}
+        run: npm run build
+
+      - name: Verify dist folder 📁
+        run: |
+          echo "Current directory:"
+          pwd
+
+          echo "--- root files ---"
+          ls -la
+
+          if [ ! -d "dist" ]; then
+            echo "❌ dist folder does not exist"
+            echo "Maybe Vite builds to another folder. Check vite.config.js build.outDir"
+            exit 1
+          fi
+
+          echo "--- dist files ---"
+          find dist -maxdepth 3 -type f -print
+
+          if [ ! -f "dist/index.html" ]; then
+            echo "❌ dist/index.html does not exist"
+            exit 1
+          fi
+
+          echo "✅ dist folder exists and contains index.html"
+
+      - name: Verify API key was embedded into build 🧪
+        env:
+          VITE_PIXABAY_API_KEY: ${{ secrets.VITE_PIXABAY_API_KEY }}
+        run: |
+          if grep -R "$VITE_PIXABAY_API_KEY" dist > /dev/null; then
+            echo "✅ VITE_PIXABAY_API_KEY is present in built files"
+          else
+            echo "❌ VITE_PIXABAY_API_KEY was NOT embedded into dist"
+            echo "Possible reasons:"
+            echo "1. Code does not use import.meta.env.VITE_PIXABAY_API_KEY"
+            echo "2. Variable name mismatch"
+            echo "3. Build output folder is not dist"
+            echo "4. Vite config overrides env handling"
+            exit 1
+          fi
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
