@@ -9,7 +9,18 @@ export default defineConfig(({ command }) => {
     define: {
       [command === 'serve' ? 'global' : '_global']: {},
     },
+    server: {
+      hmr: {
+        clientPort: 5173,
+        host: '127.0.0.1',
+        protocol: 'ws',
+      },
+    },
     root: 'src',
+    envDir: '..',
+    optimizeDeps: {
+      entries: ['index.html'],
+    },
     build: {
       sourcemap: true,
       rollupOptions: {
