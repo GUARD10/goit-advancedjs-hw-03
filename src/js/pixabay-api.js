@@ -9,6 +9,7 @@ const requestParams = {
   safesearch: true,
 };
 
+
 export function getImagesByQuery(query) {
   if (!API_KEY) {
     return Promise.reject(new Error('MISSING_PIXABAY_API_KEY'));
