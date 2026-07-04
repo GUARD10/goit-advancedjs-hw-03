@@ -11,7 +11,7 @@ const requestParams = {
 
 
 export function getImagesByQuery(query) {
-  conslog('API_KEY:', API_KEY); // Log the API key for debugging purposes
+  console.log('API_KEY:', API_KEY); // Log the API key for debugging purposes
 
   if (!API_KEY) {
     return Promise.reject(new Error('MISSING_PIXABAY_API_KEY'));
